@@ -1,0 +1,53 @@
+# ============================================================
+# render.yaml – Render.com Deployment-Konfiguration
+# MTG Proxy Generator mit Real-ESRGAN Upscaling
+# ============================================================
+#
+# WICHTIG ZUM PLAN:
+#   Real-ESRGAN + PyTorch (CPU) benötigt ~1.5–2 GB RAM.
+#   → Render "Standard" Plan ($25/Monat, 2 GB RAM) empfohlen.
+#   → Render "Starter" Plan ($7/Monat, 512 MB RAM) reicht NICHT.
+#   → Kostenloses Free-Tier: Upscaling fällt auf PIL LANCZOS zurück.
+#     (Setze UPSCALE_ENABLED=false um Abstürze zu vermeiden)
+#
+# ============================================================
+
+services:
+  - type: web
+    name: mtg-proxy-generator
+    runtime: python
+    plan: standard          # ← Standard (2 GB RAM) für Real-ESRGAN
+                             #   Für Free-Tier: "free" + UPSCALE_ENABLED=false
+
+    # Build-Befehl:
+    # PyTorch CPU-only zuerst installieren (spezieller Index-URL nötig),
+    # dann den Rest der requirements.txt
+    buildCommand: |
+      pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu &&
+      pip install -r requirements.txt
+
+    # Start-Befehl:
+    # --workers 1:   Ein Worker reicht – Real-ESRGAN-Modell im RAM cachen
+    # --timeout 300: 5 Minuten Timeout für PDF-Generierung mit Upscaling
+    # --bind:        Render setzt PORT als Env-Var
+    startCommand: gunicorn app:app --workers 1 --timeout 300 --bind 0.0.0.0:$PORT
+
+    # Umgebungsvariablen
+    envVars:
+      - key: DATA_DIR
+        value: /data               # Persistent Disk Mountpunkt
+      - key: SECRET_KEY
+        generateValue: true        # Render generiert einen sicheren Zufallsschlüssel
+      - key: UPSCALE_ENABLED
+        value: "true"              # "false" für Free-Tier oder zum Deaktivieren
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+    # Persistent Disk:
+    # Speichert Karten-Bilder, upscaled-Versionen, PDFs und das KI-Modell
+    # dauerhaft zwischen Deployments und Restarts.
+    # $0.25/GB/Monat – 10 GB sind für normalen Gebrauch mehr als ausreichend.
+    disk:
+      name: mtg-proxy-data
+      mountPath: /data
+      sizeGB: 10

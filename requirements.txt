@@ -1,0 +1,29 @@
+# ============================================================
+# MTG Proxy Generator – Abhängigkeiten für Render.com
+# ============================================================
+
+# Web-Framework & Server
+flask>=3.0.0
+gunicorn>=21.2.0
+
+# HTTP-Anfragen
+requests>=2.31.0
+
+# PDF-Erstellung
+fpdf2>=2.7.9
+
+# Bildverarbeitung (Basis)
+Pillow>=10.3.0
+
+# ============================================================
+# KI-UPSCALING (Real-ESRGAN)
+# PyTorch (CPU-only, ~230 MB statt ~2 GB für CUDA-Version)
+# Wird über den Build-Befehl in render.yaml installiert,
+# da ein spezieller --index-url benötigt wird.
+# ============================================================
+# Die folgenden Pakete werden ZUSÄTZLICH im Build-Befehl installiert:
+#   torch --index-url https://download.pytorch.org/whl/cpu
+#   torchvision --index-url https://download.pytorch.org/whl/cpu
+basicsr>=1.4.2
+realesrgan>=0.3.0
+opencv-python-headless>=4.9.0
